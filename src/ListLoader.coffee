@@ -3,32 +3,32 @@
 
 emptyFunction = require "emptyFunction"
 Immutable = require "immutable"
-Factory = require "factory"
 Loader = require "loader"
 define = require "define"
+Type = require "Type"
 Q = require "q"
 
-module.exports = Factory "ListLoader",
+type = Type "ListLoader"
 
-  kind: Loader
+type.inherits Loader
 
-  optionTypes:
-    transform: [ Function, Void ]
+type.optionTypes =
+  transform: Function.Maybe
 
-  initValues: ->
+type.optionDefaults =
+  transform: emptyFunction.thatReturnsArgument
 
-    _loadedIds: Object.create null
+type.defineValues
 
-  initReactiveValues: ->
+  _transform: (options) -> options.transform
 
-    loaded: Immutable.List()
+  _loadedIds: -> Object.create null
 
-  init: (options) ->
+type.defineReactiveValues
 
-    if options.transform?
-      define this, "_transform",
-        value: options.transform
-        enumerable: no
+  loaded: -> Immutable.List()
+
+type.defineMethods
 
   isItemLoaded: (id) ->
     @_loadedIds[id] is yes
@@ -40,18 +40,15 @@ module.exports = Factory "ListLoader",
   mustLoad: ->
     return @_loading if @isLoading
     return Q.fulfill @loaded if @loaded.size > 0
-    @initialLoad()
+
+    @initialLoad.apply this, arguments
     .then (loaded) ->
       throw Error "Loading aborted!" unless loaded?
       loaded
-    .fail (error) ->
-      # TODO: Retry logic with exponential backoff
 
-  _transform: emptyFunction.thatReturnsArgument
+type.overrideMethods
 
-  _load: -> Q.fulfill []
-
-  _onLoad: (items) ->
+  __onLoad: (items) ->
 
     assertType items, Array
     loaded = []
@@ -72,7 +69,7 @@ module.exports = Factory "ListLoader",
 
     return loaded
 
-  _onUnload: ->
+  __onUnload: ->
 
     @loaded.forEach (item) ->
       item.unload() if isKind item.unload, Function
@@ -80,3 +77,5 @@ module.exports = Factory "ListLoader",
 
     @loaded = Immutable.List()
     @_loadedIds = Object.create null
+
+module.exports = type.build()
