@@ -1,11 +1,12 @@
 
-{ isKind, assertType, Void } = require "type-utils"
-
 emptyFunction = require "emptyFunction"
+assertType = require "assertType"
 Immutable = require "immutable"
 Loader = require "loader"
+isType = require "isType"
 define = require "define"
 Type = require "Type"
+Void = require "Void"
 Q = require "q"
 
 type = Type "ListLoader"
@@ -54,7 +55,7 @@ type.overrideMethods
     loaded = []
 
     for item in items
-      continue unless isKind item, Object
+      continue unless item instanceof Object
       assertType item.id, String
       continue if @isItemLoaded item.id
       @_loadedIds[item.id] = yes
@@ -72,7 +73,7 @@ type.overrideMethods
   __onUnload: ->
 
     @loaded.forEach (item) ->
-      item.unload() if isKind item.unload, Function
+      item.unload() if isType item.unload, Function
       yes
 
     @loaded = Immutable.List()
