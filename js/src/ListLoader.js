@@ -1,48 +1,57 @@
-var Factory, Immutable, Loader, Q, Void, assertType, define, emptyFunction, isKind, ref;
-
-ref = require("type-utils"), isKind = ref.isKind, assertType = ref.assertType, Void = ref.Void;
+var Immutable, Loader, Promise, Type, Void, assertType, define, emptyFunction, isType, type;
 
 emptyFunction = require("emptyFunction");
 
+assertType = require("assertType");
+
 Immutable = require("immutable");
 
-Factory = require("factory");
+Promise = require("Promise");
 
 Loader = require("loader");
 
+isType = require("isType");
+
 define = require("define");
 
-Q = require("q");
+Type = require("Type");
 
-module.exports = Factory("ListLoader", {
-  kind: Loader,
-  optionTypes: {
-    transform: [Function, Void]
+Void = require("Void");
+
+type = Type("ListLoader");
+
+type.inherits(Loader);
+
+type.optionTypes = {
+  transform: Function.Maybe
+};
+
+type.optionDefaults = {
+  transform: emptyFunction.thatReturnsArgument
+};
+
+type.defineValues({
+  _transform: function(options) {
+    return options.transform;
   },
-  initValues: function() {
-    return {
-      _loadedIds: Object.create(null)
-    };
-  },
-  initReactiveValues: function() {
-    return {
-      loaded: Immutable.List()
-    };
-  },
-  init: function(options) {
-    if (options.transform != null) {
-      return define(this, "_transform", {
-        value: options.transform,
-        enumerable: false
-      });
-    }
-  },
+  _loadedIds: function() {
+    return Object.create(null);
+  }
+});
+
+type.defineReactiveValues({
+  loaded: function() {
+    return Immutable.List();
+  }
+});
+
+type.defineMethods({
   isItemLoaded: function(id) {
     return this._loadedIds[id] === true;
   },
   initialLoad: function() {
     if (this.isLoading || this.loaded.size > 0) {
-      return Q.fulfill();
+      return Promise();
     }
     return this.load.apply(this, arguments);
   },
@@ -51,26 +60,25 @@ module.exports = Factory("ListLoader", {
       return this._loading;
     }
     if (this.loaded.size > 0) {
-      return Q.fulfill(this.loaded);
+      return Promise(this.loaded);
     }
-    return this.initialLoad().then(function(loaded) {
+    return this.initialLoad.apply(this, arguments).then(function(loaded) {
       if (loaded == null) {
         throw Error("Loading aborted!");
       }
       return loaded;
-    }).fail(function(error) {});
-  },
-  _transform: emptyFunction.thatReturnsArgument,
-  _load: function() {
-    return Q.fulfill([]);
-  },
-  _onLoad: function(items) {
+    });
+  }
+});
+
+type.overrideMethods({
+  __onLoad: function(items) {
     var i, item, len, loaded;
     assertType(items, Array);
     loaded = [];
     for (i = 0, len = items.length; i < len; i++) {
       item = items[i];
-      if (!isKind(item, Object)) {
+      if (!(item instanceof Object)) {
         continue;
       }
       assertType(item.id, String);
@@ -88,9 +96,9 @@ module.exports = Factory("ListLoader", {
     }
     return loaded;
   },
-  _onUnload: function() {
+  __onUnload: function() {
     this.loaded.forEach(function(item) {
-      if (isKind(item.unload, Function)) {
+      if (isType(item.unload, Function)) {
         item.unload();
       }
       return true;
@@ -99,5 +107,7 @@ module.exports = Factory("ListLoader", {
     return this._loadedIds = Object.create(null);
   }
 });
+
+module.exports = type.build();
 
 //# sourceMappingURL=../../map/src/ListLoader.map

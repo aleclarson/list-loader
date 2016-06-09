@@ -1,63 +1,61 @@
 
-{ isKind, assertType, Void } = require "type-utils"
-
 emptyFunction = require "emptyFunction"
+assertType = require "assertType"
 Immutable = require "immutable"
-Factory = require "factory"
+Promise = require "Promise"
 Loader = require "loader"
+isType = require "isType"
 define = require "define"
-Q = require "q"
+Type = require "Type"
+Void = require "Void"
 
-module.exports = Factory "ListLoader",
+type = Type "ListLoader"
 
-  kind: Loader
+type.inherits Loader
 
-  optionTypes:
-    transform: [ Function, Void ]
+type.optionTypes =
+  transform: Function.Maybe
 
-  initValues: ->
+type.optionDefaults =
+  transform: emptyFunction.thatReturnsArgument
 
-    _loadedIds: Object.create null
+type.defineValues
 
-  initReactiveValues: ->
+  _transform: (options) -> options.transform
 
-    loaded: Immutable.List()
+  _loadedIds: -> Object.create null
 
-  init: (options) ->
+type.defineReactiveValues
 
-    if options.transform?
-      define this, "_transform",
-        value: options.transform
-        enumerable: no
+  loaded: -> Immutable.List()
+
+type.defineMethods
 
   isItemLoaded: (id) ->
     @_loadedIds[id] is yes
 
   initialLoad: ->
-    return Q.fulfill() if @isLoading or @loaded.size > 0
+    return Promise() if @isLoading or @loaded.size > 0
     @load.apply this, arguments
 
   mustLoad: ->
     return @_loading if @isLoading
-    return Q.fulfill @loaded if @loaded.size > 0
-    @initialLoad()
+    return Promise @loaded if @loaded.size > 0
+
+    @initialLoad.apply this, arguments
     .then (loaded) ->
       throw Error "Loading aborted!" unless loaded?
       loaded
-    .fail (error) ->
-      # TODO: Retry logic with exponential backoff
 
-  _transform: emptyFunction.thatReturnsArgument
+type.overrideMethods
 
-  _load: -> Q.fulfill []
-
-  _onLoad: (items) ->
+  __onLoad: (items) ->
 
     assertType items, Array
     loaded = []
 
     for item in items
-      continue unless isKind item, Object
+      continue unless item instanceof Object
       assertType item.id, String
       continue if @isItemLoaded item.id
       @_loadedIds[item.id] = yes
@@ -72,11 +70,13 @@ module.exports = Factory "ListLoader",
 
     return loaded
 
-  _onUnload: ->
+  __onUnload: ->
 
     @loaded.forEach (item) ->
-      item.unload() if isKind item.unload, Function
+      item.unload() if isType item.unload, Function
       yes
 
     @loaded = Immutable.List()
     @_loadedIds = Object.create null
+
+module.exports = type.build()
