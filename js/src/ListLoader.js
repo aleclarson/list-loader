@@ -1,10 +1,12 @@
-var Immutable, Loader, Q, Type, Void, assertType, define, emptyFunction, isType, type;
+var Immutable, Loader, Promise, Type, Void, assertType, define, emptyFunction, isType, type;
 
 emptyFunction = require("emptyFunction");
 
 assertType = require("assertType");
 
 Immutable = require("immutable");
+
+Promise = require("Promise");
 
 Loader = require("loader");
 
@@ -15,8 +17,6 @@ define = require("define");
 Type = require("Type");
 
 Void = require("Void");
-
-Q = require("q");
 
 type = Type("ListLoader");
 
@@ -51,7 +51,7 @@ type.defineMethods({
   },
   initialLoad: function() {
     if (this.isLoading || this.loaded.size > 0) {
-      return Q.fulfill();
+      return Promise();
     }
     return this.load.apply(this, arguments);
   },
@@ -60,7 +60,7 @@ type.defineMethods({
       return this._loading;
     }
     if (this.loaded.size > 0) {
-      return Q.fulfill(this.loaded);
+      return Promise(this.loaded);
     }
     return this.initialLoad.apply(this, arguments).then(function(loaded) {
       if (loaded == null) {

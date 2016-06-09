@@ -2,12 +2,12 @@
 emptyFunction = require "emptyFunction"
 assertType = require "assertType"
 Immutable = require "immutable"
+Promise = require "Promise"
 Loader = require "loader"
 isType = require "isType"
 define = require "define"
 Type = require "Type"
 Void = require "Void"
-Q = require "q"
 
 type = Type "ListLoader"
 
@@ -35,12 +35,12 @@ type.defineMethods
     @_loadedIds[id] is yes
 
   initialLoad: ->
-    return Q.fulfill() if @isLoading or @loaded.size > 0
+    return Promise() if @isLoading or @loaded.size > 0
     @load.apply this, arguments
 
   mustLoad: ->
     return @_loading if @isLoading
-    return Q.fulfill @loaded if @loaded.size > 0
+    return Promise @loaded if @loaded.size > 0
 
     @initialLoad.apply this, arguments
     .then (loaded) ->
