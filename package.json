@@ -4,12 +4,9 @@
   "main": "js/src/ListLoader",
   "dependencies": {
     "Promise": "aleclarson/Promise#1.0.0",
-    "Type": "aleclarson/Type#1.0.0",
-    "Void": "aleclarson/Void#1.0.0",
-    "assertType": "aleclarson/assertType#1.0.0",
-    "define": "aleclarson/define#1.0.0",
-    "emptyFunction": "aleclarson/emptyFunction#1.0.0",
-    "immutable": "aleclarson/immutable#3.7.5",
+    "ReactiveList": "aleclarson/ReactiveList#1.0.0",
+    "Type": "aleclarson/Type#1.1.0",
+    "assertType": "aleclarson/assertType#2.0.0",
     "isType": "aleclarson/isType#1.0.0",
     "loader": "aleclarson/loader#1.0.0"
   },

@@ -1,113 +1,111 @@
-var Immutable, Loader, Promise, Type, Void, assertType, define, emptyFunction, isType, type;
+var Loader, Promise, ReactiveList, Type, assertType, type;
 
-emptyFunction = require("emptyFunction");
+ReactiveList = require("ReactiveList");
 
 assertType = require("assertType");
-
-Immutable = require("immutable");
 
 Promise = require("Promise");
 
 Loader = require("loader");
 
-isType = require("isType");
-
-define = require("define");
-
 Type = require("Type");
-
-Void = require("Void");
 
 type = Type("ListLoader");
 
 type.inherits(Loader);
 
-type.optionTypes = {
-  transform: Function.Maybe
-};
-
-type.optionDefaults = {
-  transform: emptyFunction.thatReturnsArgument
-};
+type.defineOptions({
+  allowDupes: Boolean.withDefault(false),
+  cacheResults: Boolean.withDefault(false)
+});
 
 type.defineValues({
-  _transform: function(options) {
-    return options.transform;
-  },
-  _loadedIds: function() {
+  _loaded: function(options) {
+    if (options.allowDupes) {
+      return;
+    }
     return Object.create(null);
+  },
+  _cache: function(options) {
+    if (!options.cacheResults) {
+      return;
+    }
+    return ReactiveList();
   }
 });
 
-type.defineReactiveValues({
+type.defineGetters({
   loaded: function() {
-    return Immutable.List();
+    if (this._cache) {
+      return this._cache.array;
+    }
+    throw Error("Cannot access 'loaded' when 'options.cacheResults' is false!");
+  },
+  isLoaded: function() {
+    if (this._cache) {
+      return this._cache.length > 0;
+    }
+    throw Error("Cannot access 'isLoaded' when 'options.cacheResults' is false!");
+  },
+  numLoaded: function() {
+    if (this._cache) {
+      return this._cache.length;
+    }
+    throw Error("Cannot access 'numLoaded' when 'options.cacheResults' is false!");
   }
 });
 
 type.defineMethods({
-  isItemLoaded: function(id) {
-    return this._loadedIds[id] === true;
+  hasItem: function(id) {
+    if (this._loaded) {
+      return this._loaded[id] === true;
+    }
+    throw Error("Cannot call 'hasItem' when 'options.allowDupes' is true!");
   },
-  initialLoad: function() {
-    if (this.isLoading || this.loaded.size > 0) {
-      return Promise();
-    }
-    return this.load.apply(this, arguments);
-  },
-  mustLoad: function() {
-    if (this.isLoading) {
-      return this._loading;
-    }
-    if (this.loaded.size > 0) {
-      return Promise(this.loaded);
-    }
-    return this.initialLoad.apply(this, arguments).then(function(loaded) {
-      if (loaded == null) {
-        throw Error("Loading aborted!");
+  firstLoad: function() {
+    if (this._cache) {
+      if (this._cache.length) {
+        return Promise(this._cache.array);
       }
-      return loaded;
-    });
+      if (this._loading) {
+        return this._loading;
+      }
+      return this.load.apply(this, arguments);
+    }
+    throw Error("Cannot call 'firstLoad' when 'options.cacheResults' is false!");
+  },
+  forEach: function(iterator) {
+    if (this._cache) {
+      return this._cache.forEach(iterator);
+    }
+    throw Error("Cannot call 'forEach' when 'options.cacheResults' is false!");
   }
 });
 
 type.overrideMethods({
   __onLoad: function(items) {
-    var i, item, len, loaded;
-    assertType(items, Array);
-    loaded = [];
-    for (i = 0, len = items.length; i < len; i++) {
-      item = items[i];
-      if (!(item instanceof Object)) {
-        continue;
+    var loaded;
+    assertType(items, Array, "items");
+    loaded = this._loaded;
+    loaded && (items = items.filter(function(item, index) {
+      assertType(item.id, String, "items[" + index + "].id");
+      if (loaded[item.id]) {
+        return false;
       }
-      assertType(item.id, String);
-      if (this.isItemLoaded(item.id)) {
-        continue;
-      }
-      this._loadedIds[item.id] = true;
-      loaded.push(item);
-    }
-    loaded = this._transform(loaded);
-    assertType(loaded, [Array, Void]);
-    if (loaded != null ? loaded.length : void 0) {
-      this.loaded = this.loaded.concat(loaded);
-      this.didLoad.emit(loaded);
-    }
-    return loaded;
+      loaded[item.id] = true;
+      return true;
+    }));
+    items.length && this._cache.append(items);
+    return items;
   },
   __onUnload: function() {
-    this.loaded.forEach(function(item) {
-      if (isType(item.unload, Function)) {
-        item.unload();
-      }
-      return true;
+    this._loaded && (this._loaded = Object.create(null));
+    this._cache && this._cache.forEach(function(item) {
+      return item.unload && item.unload();
     });
-    this.loaded = Immutable.List();
-    return this._loadedIds = Object.create(null);
   }
 });
 
 module.exports = type.build();
 
-//# sourceMappingURL=../../map/src/ListLoader.map
+//# sourceMappingURL=map/ListLoader.map

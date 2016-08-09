@@ -1,82 +1,79 @@
 
-emptyFunction = require "emptyFunction"
+ReactiveList = require "ReactiveList"
 assertType = require "assertType"
-Immutable = require "immutable"
 Promise = require "Promise"
 Loader = require "loader"
-isType = require "isType"
-define = require "define"
 Type = require "Type"
-Void = require "Void"
 
 type = Type "ListLoader"
 
 type.inherits Loader
 
-type.optionTypes =
-  transform: Function.Maybe
-
-type.optionDefaults =
-  transform: emptyFunction.thatReturnsArgument
+type.defineOptions
+  allowDupes: Boolean.withDefault no
+  cacheResults: Boolean.withDefault no
 
 type.defineValues
 
-  _transform: (options) -> options.transform
+  _loaded: (options) ->
+    return if options.allowDupes
+    return Object.create null
 
-  _loadedIds: -> Object.create null
+  _cache: (options) ->
+    return unless options.cacheResults
+    return ReactiveList()
 
-type.defineReactiveValues
+type.defineGetters
 
-  loaded: -> Immutable.List()
+  loaded: ->
+    return @_cache.array if @_cache
+    throw Error "Cannot access 'loaded' when 'options.cacheResults' is false!"
+
+  isLoaded: ->
+    return @_cache.length > 0 if @_cache
+    throw Error "Cannot access 'isLoaded' when 'options.cacheResults' is false!"
+
+  numLoaded: ->
+    return @_cache.length if @_cache
+    throw Error "Cannot access 'numLoaded' when 'options.cacheResults' is false!"
 
 type.defineMethods
 
-  isItemLoaded: (id) ->
-    @_loadedIds[id] is yes
+  hasItem: (id) ->
+    return @_loaded[id] is yes if @_loaded
+    throw Error "Cannot call 'hasItem' when 'options.allowDupes' is true!"
 
-  initialLoad: ->
-    return Promise() if @isLoading or @loaded.size > 0
-    @load.apply this, arguments
+  firstLoad: ->
+    if @_cache
+      return Promise @_cache.array if @_cache.length
+      return @_loading if @_loading
+      return @load.apply this, arguments
+    throw Error "Cannot call 'firstLoad' when 'options.cacheResults' is false!"
 
-  mustLoad: ->
-    return @_loading if @isLoading
-    return Promise @loaded if @loaded.size > 0
-
-    @initialLoad.apply this, arguments
-    .then (loaded) ->
-      throw Error "Loading aborted!" unless loaded?
-      loaded
+  forEach: (iterator) ->
+    return @_cache.forEach iterator if @_cache
+    throw Error "Cannot call 'forEach' when 'options.cacheResults' is false!"
 
 type.overrideMethods
 
   __onLoad: (items) ->
 
-    assertType items, Array
-    loaded = []
+    assertType items, Array, "items"
 
-    for item in items
-      continue unless item instanceof Object
-      assertType item.id, String
-      continue if @isItemLoaded item.id
-      @_loadedIds[item.id] = yes
-      loaded.push item
+    loaded = @_loaded
+    loaded and items = items.filter (item, index) ->
+      assertType item.id, String, "items[#{index}].id"
+      return no if loaded[item.id]
+      loaded[item.id] = yes
+      return yes
 
-    loaded = @_transform loaded
-    assertType loaded, [ Array, Void ]
-
-    if loaded?.length
-      @loaded = @loaded.concat loaded
-      @didLoad.emit loaded
-
-    return loaded
+    items.length and @_cache.append items
+    return items
 
   __onUnload: ->
-
-    @loaded.forEach (item) ->
-      item.unload() if isType item.unload, Function
-      yes
-
-    @loaded = Immutable.List()
-    @_loadedIds = Object.create null
+    @_loaded and @_loaded = Object.create null
+    @_cache and @_cache.forEach (item) ->
+      item.unload and item.unload()
+    return
 
 module.exports = type.build()
