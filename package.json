@@ -1,7 +1,7 @@
 {
   "name": "list-loader",
   "version": "2.0.0",
-  "main": "js/src/ListLoader",
+  "main": "js/ListLoader",
   "dependencies": {
     "Promise": "aleclarson/Promise#1.0.0",
     "ReactiveList": "aleclarson/ReactiveList#1.0.0",
