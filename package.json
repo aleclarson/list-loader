@@ -1,6 +1,6 @@
 {
   "name": "list-loader",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "main": "js/ListLoader",
   "dependencies": {
     "Promise": "aleclarson/Promise#1.0.0",

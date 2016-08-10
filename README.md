@@ -1,18 +1,18 @@
 
-# list-loader v3.0.0 ![stable](https://img.shields.io/badge/stability-stable-4EBA0F.svg?style=flat)
+# list-loader v3.1.0 ![stable](https://img.shields.io/badge/stability-stable-4EBA0F.svg?style=flat)
 
 A subclass of [`Loader`](http://github.com/aleclarson/loader) that:
 
 - caches loaded items (if `options.cacheResults` is true)
 
-- prevents duplicate items (if `options.allowDupes` is false)
+- prevents duplicate items (if `options.preventDupes` is true)
 
 ```coffee
 ListLoader = require "list-loader"
 
 loader = ListLoader
   cacheResults: yes # <= Defaults to false
-  allowDupes: no    # <= Defaults to false
+  preventDupes: yes # <= Defaults to false
 ```
 
 ### Properties
@@ -35,7 +35,7 @@ loader.isLoaded
 
 ```coffee
 # Returns true if `itemId` has been loaded.
-# Only callable if `options.allowDupes` is false.
+# Only callable if `options.preventDupes` is true.
 loader.hasItem itemId
 
 # Calls `load` if no results are loaded/loading.

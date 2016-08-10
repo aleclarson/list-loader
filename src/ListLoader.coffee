@@ -10,18 +10,18 @@ type = Type "ListLoader"
 type.inherits Loader
 
 type.defineOptions
-  allowDupes: Boolean.withDefault no
   cacheResults: Boolean.withDefault no
+  preventDupes: Boolean.withDefault no
 
 type.defineValues
-
-  _loaded: (options) ->
-    return if options.allowDupes
-    return Object.create null
 
   _cache: (options) ->
     return unless options.cacheResults
     return ReactiveList()
+
+  _loaded: (options) ->
+    return unless options.preventDupes
+    return Object.create null
 
 type.defineGetters
 
@@ -41,7 +41,7 @@ type.defineMethods
 
   hasItem: (id) ->
     return @_loaded[id] is yes if @_loaded
-    throw Error "Cannot call 'hasItem' when 'options.allowDupes' is true!"
+    throw Error "Cannot call 'hasItem' when 'options.preventDupes' is false!"
 
   firstLoad: ->
     if @_cache
@@ -54,20 +54,27 @@ type.defineMethods
     return @_cache.forEach iterator if @_cache
     throw Error "Cannot call 'forEach' when 'options.cacheResults' is false!"
 
+type.defineHooks
+
+  __assertUnique: (item, index) ->
+    assertType item.id, String, "items[#{index}].id"
+    return item.id
+
 type.overrideMethods
 
   __onLoad: (items) ->
 
     assertType items, Array, "items"
 
-    loaded = @_loaded
-    loaded and items = items.filter (item, index) ->
-      assertType item.id, String, "items[#{index}].id"
-      return no if loaded[item.id]
-      loaded[item.id] = yes
-      return yes
+    if loaded = @_loaded
+      assertUnique = @__assertUnique
+      items = items.filter (item, index) ->
+        id = assertUnique item, index
+        return no if loaded[id]
+        loaded[id] = yes
+        return yes
 
-    items.length and @_cache.append items
+    @_cache and items.length and @_cache.append items
     return items
 
   __onUnload: ->
