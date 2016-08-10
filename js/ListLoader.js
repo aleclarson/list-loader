@@ -15,22 +15,22 @@ type = Type("ListLoader");
 type.inherits(Loader);
 
 type.defineOptions({
-  allowDupes: Boolean.withDefault(false),
-  cacheResults: Boolean.withDefault(false)
+  cacheResults: Boolean.withDefault(false),
+  preventDupes: Boolean.withDefault(false)
 });
 
 type.defineValues({
-  _loaded: function(options) {
-    if (options.allowDupes) {
-      return;
-    }
-    return Object.create(null);
-  },
   _cache: function(options) {
     if (!options.cacheResults) {
       return;
     }
     return ReactiveList();
+  },
+  _loaded: function(options) {
+    if (!options.preventDupes) {
+      return;
+    }
+    return Object.create(null);
   }
 });
 
@@ -60,7 +60,7 @@ type.defineMethods({
     if (this._loaded) {
       return this._loaded[id] === true;
     }
-    throw Error("Cannot call 'hasItem' when 'options.allowDupes' is true!");
+    throw Error("Cannot call 'hasItem' when 'options.preventDupes' is false!");
   },
   firstLoad: function() {
     if (this._cache) {
@@ -82,20 +82,30 @@ type.defineMethods({
   }
 });
 
+type.defineHooks({
+  __assertUnique: function(item, index) {
+    assertType(item.id, String, "items[" + index + "].id");
+    return item.id;
+  }
+});
+
 type.overrideMethods({
   __onLoad: function(items) {
-    var loaded;
+    var assertUnique, loaded;
     assertType(items, Array, "items");
-    loaded = this._loaded;
-    loaded && (items = items.filter(function(item, index) {
-      assertType(item.id, String, "items[" + index + "].id");
-      if (loaded[item.id]) {
-        return false;
-      }
-      loaded[item.id] = true;
-      return true;
-    }));
-    items.length && this._cache.append(items);
+    if (loaded = this._loaded) {
+      assertUnique = this.__assertUnique;
+      items = items.filter(function(item, index) {
+        var id;
+        id = assertUnique(item, index);
+        if (loaded[id]) {
+          return false;
+        }
+        loaded[id] = true;
+        return true;
+      });
+    }
+    this._cache && items.length && this._cache.append(items);
     return items;
   },
   __onUnload: function() {
