@@ -3,7 +3,7 @@
   "version": "3.1.0",
   "main": "js/ListLoader",
   "dependencies": {
-    "Promise": "aleclarson/Promise#1.0.0",
+    "Promise": "aleclarson/Promise#2.0.0",
     "ReactiveList": "aleclarson/ReactiveList#1.0.0",
     "Type": "aleclarson/Type#1.1.0",
     "assertType": "aleclarson/assertType#2.0.0",
