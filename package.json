@@ -2,17 +2,23 @@
   "name": "list-loader",
   "version": "3.1.0",
   "main": "js/ListLoader",
+  "plugins": [
+    "lotus-coffee"
+  ],
+  "scripts": {
+    "build": "coffee -cb -o js src",
+    "postinstall": "postinstall-build js 'npm run build'"
+  },
   "dependencies": {
     "Promise": "aleclarson/Promise#2.0.0",
     "ReactiveList": "aleclarson/ReactiveList#1.1.0",
     "Type": "aleclarson/Type#1.1.0",
     "assertType": "aleclarson/assertType#2.0.0",
     "isType": "aleclarson/isType#1.0.0",
-    "loader": "aleclarson/loader#1.0.0"
+    "loader": "aleclarson/loader#1.0.0",
+    "postinstall-build": "0.2.x"
   },
-  "lotus": {
-    "plugins": [
-      "lotus-coffee"
-    ]
+  "devDependencies": {
+    "coffee-script": "1.9.x"
   }
 }
