@@ -9,9 +9,9 @@ type = Type "ListLoader"
 
 type.inherits Loader
 
-type.defineOptions
-  cacheResults: Boolean.withDefault no
-  preventDupes: Boolean.withDefault no
+type.defineArgs
+  cacheResults: Boolean
+  preventDupes: Boolean
 
 type.defineValues
 
